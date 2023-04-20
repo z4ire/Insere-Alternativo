@@ -6,8 +6,8 @@ from tkinter import messagebox
 def retornar_conexao_sql():
     server = "Kimera"
     database = "Repositorio_SAP"
-    username = "leitura_sap"
-    password = "Fx!74Xq0gBg@qit"
+    username = ""
+    password = ""
 
     string_conexao = 'Driver={SQL Server Native Client 11.0};Server=' + \
         server+';Database='+database+';UID='+username+';PWD='+password
