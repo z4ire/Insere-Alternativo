@@ -4,60 +4,91 @@ import datetime
 from win32api import RGB
 from pathlib import Path
 from tkinter import messagebox
+from openpyxl.styles import PatternFill
+from win32com.client import constants
 
 
-def atualizar_historico(wb, n_nova_versao, merge_range, eco, codigo_principal, codigo_alternativo, descricao, engenheiro, responsavel, descricao_comp, BOM):
+def atualizar_historico(wb, n_nova_versao, merge_range, eco, codigo_alternativo, descricao, engenheiro, data, descricao_comp, BOM):
     try:
         historico = wb.Worksheets("Histórico de Modificação")
     except:
         wb.Close(False)
-        messagebox.showerror(message=f"Não foi encontrado uma planilha com o nome \"Histórico de Modificação\" na BOM {BOM}", title="ERRO")
-        raise ValueError( f"Não foi encontrado uma planilha com o nome \"Histórico de Modificação\" na BOM {BOM}")
-
+        messagebox.showerror(
+            message=f"Não foi encontrado uma planilha com o nome \"Histórico de Modificação\" na BOM {BOM}", title="ERRO")
+        raise ValueError(
+            f"Não foi encontrado uma planilha com o nome \"Histórico de Modificação\" na BOM {BOM}")
 
     celula_versao = historico.Cells.Range("A:A").Find("Versão")
     if celula_versao is None:
         wb.Close(False)
-        messagebox.showerror(message=f"Não foi encontrado a palavra \"Versão\" na coluna \"A\" da planilha \"Histórico de Modificação\" da BOM {BOM}", title="ERRO")
-        raise ValueError( f"Não foi encontrado a palavra \"Versão\" na coluna \"A\" da planilha \"Histórico de Modificação\" da BOM {BOM}")
-    
-    celula_status = historico.Range("A" + str(celula_versao.Row) + ":Z" + str(celula_versao.Row)).Find("Status", LookIn=win32.constants.xlValues, LookAt=win32.constants.xlPart, SearchDirection=win32.constants.xlNext, SearchOrder=win32.constants.xlByColumns)
-    
+        messagebox.showerror(
+            message=f"Não foi encontrado a palavra \"Versão\" na coluna \"A\" da planilha \"Histórico de Modificação\" da BOM {BOM}", title="ERRO")
+        raise ValueError(
+            f"Não foi encontrado a palavra \"Versão\" na coluna \"A\" da planilha \"Histórico de Modificação\" da BOM {BOM}")
+
+    celula_status = historico.Range("A" + str(celula_versao.Row) + ":Z" + str(celula_versao.Row)).Find("Status", LookIn=win32.constants.xlValues,
+                                                                                                       LookAt=win32.constants.xlPart, SearchDirection=win32.constants.xlNext, SearchOrder=win32.constants.xlByColumns)
+
     if celula_status is None:
         wb.Close(False)
-        messagebox.showerror(message=f"Não foi encontrado a palavra \"Status\" na planilha \"Histórico de Modificação\" da BOM {BOM}", title="ERRO")
-        raise ValueError( f"Não foi encontrado a palavra \"Status\" na planilha \"Histórico de Modificação\" da BOM {BOM}")
-    
-    strBusca = "EOL"
-    celula_status_EOL = historico.Columns(celula_status.Column).Find(strBusca, LookIn=win32.constants.xlValues, LookAt=win32.constants.xlPart, SearchDirection=win32.constants.xlNext, SearchOrder=win32.constants.xlByColumns)
+        messagebox.showerror(
+            message=f"Não foi encontrado a palavra \"Status\" na planilha \"Histórico de Modificação\" da BOM {BOM}", title="ERRO")
+        raise ValueError(
+            f"Não foi encontrado a palavra \"Status\" na planilha \"Histórico de Modificação\" da BOM {BOM}")
 
+    def formatacao_condicional(celula):
+        celula.FormatConditions.Delete()
+        # Cria uma lista de regras de formatação condicional
+        regras_formatacao = [
+            {"condicao": "Não Liberado", "cor_fundo": RGB(
+                128, 0, 0), "cor_fonte": RGB(255, 255, 255)},
+            {"condicao": "Liberado", "cor_fundo": RGB(
+                51, 153, 102), "cor_fonte": RGB(0, 0, 0)},
+            {"condicao": "EOL", "cor_fundo": RGB(
+                255, 255, 0), "cor_fonte": RGB(0, 0, 0)}
+        ]
+
+        # Adiciona cada regra de formatação condicional e aplica as configurações
+        for regra in regras_formatacao:
+            nova_formatacao = celula.FormatConditions.Add(
+                Type=win32.constants.xlCellValue, Operator=win32.constants.xlEqual, Formula1=regra["condicao"])
+            nova_formatacao.Font.Color = regra["cor_fonte"]
+            nova_formatacao.Font.Bold = True
+            nova_formatacao.Interior.Color = regra["cor_fundo"]
+
+    strBusca = "EOL"
+    celula_status_EOL = historico.Columns(celula_status.Column).Find(strBusca, LookIn=win32.constants.xlValues,
+                                                                     LookAt=win32.constants.xlPart, SearchDirection=win32.constants.xlNext, SearchOrder=win32.constants.xlByColumns)
     if celula_status_EOL is not None:
+        formatacao_condicional(celula_status_EOL)
         celula_status_EOL.Value = "Não Liberado"
-        celula_status_EOL.FormatConditions.Delete()
-        celula_status_EOL.Font.Bold = True
-        celula_status_EOL.Font.Color = RGB(255, 255, 255)
-        celula_status_EOL.Interior.Color = RGB(128, 0, 0)
+        # celula_status_EOL.FormatConditions.Delete()
+        # celula_status_EOL.Font.Bold = True
+        # celula_status_EOL.Font.Color = RGB(255, 255, 255)
+        # celula_status_EOL.Interior.Color = RGB(128, 0, 0)
     else:
         strBusca = "Liberado"
-        celula_status_liberado = historico.Columns(celula_status.Column).Find(strBusca, LookIn=win32.constants.xlValues, LookAt=win32.constants.xlWhole,
-                                                                              SearchDirection=win32.constants.xlNext, SearchOrder=win32.constants.xlByColumns)
+        celula_status_liberado = historico.Columns(celula_status.Column).Find(
+            strBusca, LookIn=win32.constants.xlValues, LookAt=win32.constants.xlWhole, SearchDirection=win32.constants.xlNext, SearchOrder=win32.constants.xlByColumns)
         if celula_status_liberado is not None:
+            formatacao_condicional(celula_status_liberado)
             celula_status_liberado.Value = "EOL"
-            celula_status_liberado.FormatConditions.Delete()
-            celula_status_liberado.Font.Bold = True
-            celula_status_liberado.Font.Color = RGB(0, 0, 0)
-            celula_status_liberado.Interior.Color = RGB(255, 255, 0)
+            # celula_status_liberado.FormatConditions.Delete()
+            # celula_status_liberado.Font.Bold = True
+            # celula_status_liberado.Font.Color = RGB(0, 0, 0)
+            # celula_status_liberado.Interior.Color = RGB(255, 255, 0)
 
     strBusca = "Liberado"
     celula_status_liberado = historico.Columns(celula_status.Column).Find(strBusca, LookIn=win32.constants.xlValues, LookAt=win32.constants.xlPart,
                                                                           SearchDirection=win32.constants.xlPrevious, SearchOrder=win32.constants.xlByColumns, After=celula_status)
 
     if celula_status_liberado is not None:
+        formatacao_condicional(celula_status_liberado)
         celula_status_liberado.Value = "EOL"
-        celula_status_liberado.FormatConditions.Delete()
-        celula_status_liberado.Font.Bold = True
-        celula_status_liberado.Font.Color = RGB(0, 0, 0)
-        celula_status_liberado.Interior.Color = RGB(255, 255, 0)
+        # celula_status_liberado.FormatConditions.Delete()
+        # celula_status_liberado.Font.Bold = True
+        # celula_status_liberado.Font.Color = RGB(0, 0, 0)
+        # celula_status_liberado.Interior.Color = RGB(255, 255, 0)
 
     linha_atual = celula_status.Row + 1
     celula_atual = historico.Cells(linha_atual, celula_status.Column)
@@ -89,8 +120,26 @@ def atualizar_historico(wb, n_nova_versao, merge_range, eco, codigo_principal, c
     historico.Cells(ultima_linha, 2).Font.Strikethrough = False
     historico.Cells(ultima_linha, 2).Value = eco
     historico.Cells(ultima_linha, 3).Font.Strikethrough = False
-    historico.Cells(ultima_linha, 3).Hyperlinks.Add(Anchor=historico.Cells(ultima_linha, 3), Address=hiperlink)
-    historico.Cells(ultima_linha, 3).Value = "Download"
+
+    celula_acima = historico.Cells(ultima_linha - 1, 3)
+
+    # Verifica se a célula acima está mesclada
+    if historico.Cells(ultima_linha - 1, 3).MergeCells:
+        # Se estiver mesclada, seleciona a primeira célula da mesclagem
+        celula_acima = celula_acima.MergeArea.Cells(1)
+
+    # Copia a formatação da célula acima
+    celula_acima.Copy()
+    historico.Cells(ultima_linha, 3).PasteSpecial(constants.xlPasteAll)
+    historico.Cells(ultima_linha, 3).Calculate
+    historico.Cells(ultima_linha, 3).Borders.LineStyle = 1
+
+    # historico.Cells(ultima_linha, 3).Formula = f'=HIPERLINK("{hiperlink}", "Download")'
+
+    # historico.Cells(ultima_linha, 3).Hyperlinks.Add(
+    #     Anchor=historico.Cells(ultima_linha, 3), Address=hiperlink)
+    # historico.Cells(ultima_linha, 3).Value = "Download"
+
     historico.Cells(ultima_linha, 4).Font.Strikethrough = False
     historico.Cells(ultima_linha, 4).Value = codigo_alternativo
     historico.Cells(ultima_linha, 4).Font.Color = RGB(0, 0, 255)
@@ -99,7 +148,7 @@ def atualizar_historico(wb, n_nova_versao, merge_range, eco, codigo_principal, c
     historico.Cells(ultima_linha, 5).Font.Color = RGB(0, 0, 255)
     historico.Cells(ultima_linha, 6).Font.Strikethrough = False
     historico.Cells(ultima_linha, 6).Value = merge_range.Cells(1, 3).Value
-    historico.Cells(ultima_linha, 6).Font.Color = RGB(0, 0, 255)
+    # historico.Cells(ultima_linha, 6).Font.Color = RGB(0, 0, 255)
     historico.Cells(ultima_linha, 7).Font.Strikethrough = False
     historico.Cells(ultima_linha, 7).Value = merge_range.Cells(1, 4).Value
     historico.Cells(ultima_linha, 8).Font.Strikethrough = False
@@ -107,7 +156,9 @@ def atualizar_historico(wb, n_nova_versao, merge_range, eco, codigo_principal, c
     historico.Cells(ultima_linha, 9).Font.Strikethrough = False
     historico.Cells(ultima_linha, 9).Value = engenheiro
     historico.Cells(ultima_linha, 10).Font.Strikethrough = False
-    historico.Cells(ultima_linha, 10).Value = pywintypes.Time(datetime.date.today())
+    historico.Cells(ultima_linha, 10).Value = pywintypes.Time(data)
+    # historico.Cells(ultima_linha, 10).Value = pywintypes.Time(
+    #     datetime.date.today())
     historico.Cells(ultima_linha, 11).Font.Strikethrough = False
     # Verificar com um IF se é SIM ou OK, dependendo do arquivo da
     historico.Cells(ultima_linha, 11).Value = "Ok"
@@ -117,14 +168,13 @@ def atualizar_historico(wb, n_nova_versao, merge_range, eco, codigo_principal, c
 
     historico.Cells(
         ultima_linha, celula_status.Column).Font.Strikethrough = False
+    formatacao_condicional(historico.Cells(ultima_linha, celula_status.Column))
     historico.Cells(ultima_linha, celula_status.Column).Value = "Liberado"
-    historico.Cells(
-        ultima_linha, celula_status.Column).FormatConditions.Delete()
-    historico.Cells(ultima_linha, celula_status.Column).Font.Bold = True
-    historico.Cells(
-        ultima_linha, celula_status.Column).Font.Color = RGB(0, 0, 0)
-    historico.Cells(ultima_linha, celula_status.Column).Interior.Color = RGB(
-        51, 153, 102)
+    # historico.Cells(ultima_linha, celula_status.Column).FormatConditions.Delete()
+    # historico.Cells(ultima_linha, celula_status.Column).Font.Bold = True
+    # historico.Cells(ultima_linha, celula_status.Column).Font.Color = RGB(0, 0, 0)
+    # historico.Cells(ultima_linha, celula_status.Column).Interior.Color = RGB(
+    #     51, 153, 102)
     quantidade = historico.Cells(ultima_linha, 6).Value
     designator = historico.Cells(ultima_linha, 7).Value
     wb.Save()

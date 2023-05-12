@@ -1,6 +1,5 @@
 from tkinter import messagebox
 import sys
-import openpyxl
 
 
 def escolher_versao(wb, BOM, excel):

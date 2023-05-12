@@ -12,20 +12,22 @@ from Atualiza_Historico_da_BOM import atualizar_historico
 from Escolhe_Versao_da_BOM import escolher_versao
 from SQL import pns_sap
 
-def parametros(path_analiseimpacto, codigo_principal, codigo_alternativo, descricao, engenheiro, janela, responsavel, eco):
+
+def parametros(path_analiseimpacto, codigo_principal, codigo_alternativo, descricao, engenheiro, data, janela, responsavel, eco):
     janela.destroy()
     xlsx_files = glob.glob(os.path.join(path_analiseimpacto, "*.xlsx"))
     start = time.time()
 
     BOMs = ""
     BOMexc = ""
-    dados =[]
+    dados = []
     fabricantes_e_PNs, descricao_comp = pns_sap(codigo_alternativo)
 
     inserir_alternativo(path_analiseimpacto, BOMs, BOMexc, codigo_principal, codigo_alternativo,
-                        descricao, engenheiro, responsavel, eco, xlsx_files, start, dados, fabricantes_e_PNs, descricao_comp )
+                        descricao, engenheiro, data, responsavel, eco, xlsx_files, start, dados, fabricantes_e_PNs, descricao_comp)
 
-def inserir_alternativo(path_analiseimpacto, BOMs, BOMexc, codigo_principal, codigo_alternativo, descricao, engenheiro, responsavel, eco, xlsx_files, start, dados, fabricantes_e_PNs, descricao_comp):
+
+def inserir_alternativo(path_analiseimpacto, BOMs, BOMexc, codigo_principal, codigo_alternativo, descricao, engenheiro, data, responsavel, eco, xlsx_files, start, dados, fabricantes_e_PNs, descricao_comp):
 
     excel = win32.gencache.EnsureDispatch('Excel.Application')
     excel.DisplayAlerts = False
@@ -36,19 +38,20 @@ def inserir_alternativo(path_analiseimpacto, BOMs, BOMexc, codigo_principal, cod
 
         BOM = os.path.basename(xlsx)
 
-        print(f"Atualizando {BOM[:-5]}...")
+        print(f"Atualizando {BOM[:12]}...")
 
         wb = excel.Workbooks.Open(xlsx)
-        versao_atual, versao_intermediaria, nova_versao, n_nova_versao = escolher_versao(wb, BOM, excel)
+        versao_atual, versao_intermediaria, nova_versao, n_nova_versao = escolher_versao(
+            wb, BOM, excel)
 
         worksheet_clonada, celula_codigo, ultima_coluna, celula_codigo_principal = criar_nova_versao(
             wb, versao_atual, versao_intermediaria, nova_versao, n_nova_versao, BOM, codigo_principal, responsavel)
 
         if celula_codigo_principal is None:
-            BOMexc += BOM[:-5] + ";\n"
+            BOMexc += BOM[:12] + ";\n"
             continue
 
-        BOMs += BOM[:-5] + ";\n"
+        BOMs += BOM[:12] + ";\n"
         # Verifica se a célula onde a palavra foi encontrada está mesclada e exibe uma mensagem informando o range da mesclagem, se for o caso
 
         merge_range = celula_codigo_principal.MergeArea
@@ -62,6 +65,7 @@ def inserir_alternativo(path_analiseimpacto, BOMs, BOMexc, codigo_principal, cod
                 celula_coluna_i.Value = celula_coluna_i.Value + \
                     chr(10) + fabricantes_e_PNs
             else:
+                celula_coluna_i.Value = ""
                 celula_coluna_i.Value = fabricantes_e_PNs
 
         else:
@@ -80,7 +84,8 @@ def inserir_alternativo(path_analiseimpacto, BOMs, BOMexc, codigo_principal, cod
                         start_pos + 14, -1).Font.Bold = False
                 else:
                     celula_coluna_i.Value = celula_coluna_i.Value + \
-                        chr(10) + chr(10) + "Alternativos:" + chr(10) + fabricantes_e_PNs
+                        chr(10) + chr(10) + "Alternativos:" + \
+                        chr(10) + fabricantes_e_PNs
                     start_pos = celula_coluna_i.Value.find("Alternativos:")
                     celula_coluna_i.GetCharacters(
                         start_pos + 14, -1).Font.Bold = False
@@ -91,15 +96,16 @@ def inserir_alternativo(path_analiseimpacto, BOMs, BOMexc, codigo_principal, cod
                 celula_coluna_i.Font.Bold = False
                 celula_coluna_i.GetCharacters(1, 13).Font.Bold = True
 
-        quantidade, designator = atualizar_historico(wb, n_nova_versao, merge_range, eco, codigo_principal,
-                            codigo_alternativo, descricao, engenheiro, responsavel, descricao_comp, BOM)
-        print(f"{BOM} atualizada.")
+        quantidade, designator = atualizar_historico(wb, n_nova_versao, merge_range, eco, codigo_alternativo, descricao, engenheiro, data, descricao_comp, BOM)
+        print(f"{BOM} atualizada.\n")
 
-        dados.append([BOM[:-5], versao_atual, nova_versao, codigo_alternativo, descricao_comp, quantidade, designator, engenheiro])
+        dados.append([BOM[:12], versao_atual, nova_versao, codigo_alternativo,
+                     descricao_comp, quantidade, designator, engenheiro])
 
     excel.Quit()
 
-    df = pd.DataFrame(dados, columns=['BOM', 'Versão em EOL', 'Versão Liberada', 'Cóodigo Alternativo', 'Descrição do código alternativo', 'Quantidade', 'Designator', 'Engenheiro Responsável'])
+    df = pd.DataFrame(dados, columns=['BOM', 'Versão em EOL', 'Versão Liberada', 'Cóodigo Alternativo',
+                      'Descrição do código alternativo', 'Quantidade', 'Designator', 'Engenheiro Responsável'])
     df.to_excel(os.path.join(path_analiseimpacto, "versoes.xlsx"), index=False)
 
     end = time.time()

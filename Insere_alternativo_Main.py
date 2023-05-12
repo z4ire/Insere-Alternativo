@@ -50,7 +50,6 @@ class LoginApp:
 
 janela = tk.Tk()
 janela.wm_attributes("-topmost", 1)  # mantém a janela sempre no topo
-# define vermelho como cor transparente
 janela.wm_attributes("-transparentcolor", "red")
 janela.config(background="red")
 login_app = LoginApp(janela)

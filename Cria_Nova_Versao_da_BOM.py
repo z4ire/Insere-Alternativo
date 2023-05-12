@@ -5,6 +5,7 @@ from win32api import RGB
 from tkinter import messagebox
 from pathlib import Path
 
+
 def criar_nova_versao(wb, versao_atual, versao_intermediaria, nova_versao, n_nova_versao, BOM, codigo_principal, responsavel):
 
     buscar = {"Versão da lista": "Versão da lista:",
