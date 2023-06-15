@@ -15,7 +15,7 @@ def retornar_conexao_sql():
     return conexao.cursor()
 
 
-def pns_sap(codigo):
+def Part_Numbers(codigo):
     cursor = retornar_conexao_sql()
     df1 = pd.read_sql_query("SELECT U_ItemCode, U_NEO_DESCRI, U_NEO_PARTNUM, U_NEO_STPN, [desc-item] FROM CT_PF_OIDT "
                             "FULL JOIN CT_PF_IDT3 ON CT_PF_OIDT.Code = CT_PF_IDT3.Code "
@@ -36,12 +36,6 @@ def pns_sap(codigo):
 
     string_formatada += ')'
 
-    # criar a string formatada
-    # string_formatada = ''
-    # for group, data in grouped:
-    #     fabricante, pn = group
-    #     string_formatada += f'\n({fabricante} / {pn})'
-
     try:
         # adicionar o código ao início da string
         string_formatada = f'{df1["U_ItemCode"][0]}' + string_formatada
@@ -50,12 +44,27 @@ def pns_sap(codigo):
 
         else:
             print(
-                "Existem dua ou mais descrições diferentes para um mesmo código na Query")
+                "Existem duas ou mais descrições diferentes para um mesmo código na Query")
     except:
         messagebox.showerror(
-            message=f"Não foi encontrado no nosso banco de dados o código \"{codigo}\" ou Part Numbers associados a ele", title="ERRO")
+            message=f"Não foi encontrado no nosso banco de dados o código \"{codigo}\" ou Part Numbers ativos associados a ele", title="ERRO")
         raise ValueError(
-            f"Não foi encontrado no nosso banco de dados o código \"{codigo}\" ou Part Numbers associados a ele")
+            f"Não foi encontrado no nosso banco de dados o código \"{codigo}\" ou Part Numbers ativos associados a ele")
 
     # imprimir a string formatada
-    return string_formatada, descricao_comp
+    return string_formatada, descricao_comp.strip()
+
+
+def descricao_placa(codigo):
+    cursor = retornar_conexao_sql()
+
+    df1 = pd.read_sql_query("SELECT [desc-item] FROM OITM "
+                            f"WHERE [cod-item] = '{codigo}' ", cursor.connection)
+
+    if not df1.empty:
+
+        descricao = df1.iloc[0]['desc-item']
+
+        return descricao
+    else:
+        return None
