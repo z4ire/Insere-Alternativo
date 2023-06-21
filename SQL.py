@@ -9,7 +9,7 @@ def retornar_conexao_sql():
     username = "leitura_sap"
     password = "Fx!74Xq0gBg@qit"
 
-    string_conexao = 'Driver={SQL Server Native Client 11.0};Server=' + \
+    string_conexao = 'Driver={SQL Server};Server=' + \
         server+';Database='+database+';UID='+username+';PWD='+password
     conexao = pyodbc.connect(string_conexao)
     return conexao.cursor()
